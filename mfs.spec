@@ -16,7 +16,7 @@ Source0:	http://moosefs.org/tl_files/mfscode/%{name}-%{version}-%{minor}.tar.gz
 Source1:	mfschunkserver.init 	
 Source2:	mfsmaster.init
 Source3: 	mfsmetalogger.init
-BuildRequires:	libfuse-devel
+BuildRequires:	fuse-devel
 BuildRequires:	pkgconfig
 BuildRequires:	zlib-devel
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{minor}-%{release}-root-%(%{__id_u} -n)
