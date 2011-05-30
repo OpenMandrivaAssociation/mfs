@@ -27,35 +27,35 @@ fault tolerant file system for POSIX compliant OSes.
 
 %package master
 Summary:	MooseFS master server
-Group:		System Environment/Daemons
+Group:		System/Cluster
 
 %description master
 MooseFS master (metadata) server together with metarestore utility.
 
 %package metalogger
 Summary:	MooseFS metalogger server
-Group:		System Environment/Daemons
+Group:		System/Cluster
 
 %description metalogger
 MooseFS metalogger (metadata replication) server.
 
 %package chunkserver
 Summary:	MooseFS data server
-Group:		System Environment/Daemons
+Group:		System/Cluster
 
 %description chunkserver
 MooseFS data server.
 
 %package client
 Summary:	MooseFS client
-Group:		System Environment/Daemons
+Group:		System/Cluster
 
 %description client
 MooseFS client: mfsmount and mfstools.
 
 %package cgi
 Summary:	MooseFS CGI Monitor
-Group:		System Environment/Daemons
+Group:		System/Cluster
 Requires:	python
 
 %description cgi
