@@ -10,7 +10,7 @@ Name:		%{name}
 Version:	%{version}
 Release:	%{release}
 License:	GPL v3
-Group:		System Environment/Daemons
+Group:		System/Cluster
 URL:		http://www.moosefs.org/
 Source0:	http://moosefs.org/tl_files/mfscode/%{name}-%{version}-%{minor}.tar.gz
 Source1:	mfschunkserver.init 	
