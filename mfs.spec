@@ -1,6 +1,6 @@
 %define name mfs
 %define version 1.6.20
-%define release %mkrel 1
+%define release %mkrel 2
 %define minor 2
 %define	_localstatedir	/var/lib
 %define	mfsconfdir	%{_sysconfdir}
@@ -69,6 +69,10 @@ install -m 755 %{SOURCE3} mfsmetalogger.init
 
 %build
 %configure
+# fix libtool issue on release < 2009.1
+%if %mdkversion < 200910
+perl -pi -e "s/^ECHO.*/ECHO='echo'\necho='echo'\n/" libtool
+%endif
 make %{?_smp_mflags}
 
 %install
@@ -82,6 +86,10 @@ install -m 755 mfsmaster.init %{buildroot}%{_initrddir}/mfsmaster
 install -m 755 mfsmetalogger.init %{buildroot}%{_initrddir}/mfsmetalogger
 
 install -d $RPM_BUILD_ROOT%{_initrddir}
+ 
+%pre master
+%_pre_useradd mfs /var/lib/mfs /sbin/nologin
+%_pre_groupadd mfs mfs
 
 %post
 %_post_service mfschunkserver
@@ -112,6 +120,7 @@ rm -rf $RPM_BUILD_ROOT
 %{mfsconfdir}/mfsexports.cfg.dist
 %{mfsconfdir}/mfsmaster.cfg.dist
 %dir %{_localstatedir}/mfs
+%attr(755,mfs,mfs) %{_localstatedir}/mfs
 %{_localstatedir}/mfs/metadata.mfs.empty
 %attr(754,root,root) %{_initrddir}/mfsmaster
 
@@ -185,7 +194,7 @@ rm -rf $RPM_BUILD_ROOT
 %doc NEWS README UPGRADE
 %attr(755,root,root) %{_sbindir}/mfscgiserv
 %{_mandir}/man8/mfscgiserv.8*
-%{_datadir}/mfscgi
+%attr(755,mfs,mfs) %{_datadir}/mfscgi
 
 %changelog
 * Fri Nov 19 2010 Jakub Bogusz <contact@moosefs.com> - 1.6.19-1
