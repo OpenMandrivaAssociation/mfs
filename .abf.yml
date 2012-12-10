@@ -1,5 +1,3 @@
 sources:
-  "mfs-1.6.20-2.tar.gz:"	d74f692d25a1c78b07ab8896a4ba6118569e47d7
-  "mfschunkserver.init:"	337d758f1c98cf052d87d5a6b5a5d5b0590a3768
-  "mfsmaster.init:"	30eebb999a803d90f179591fb9dc3dc924718104
-  "mfsmetalogger.init:"	ba12063c5cd493ecf8ebdf23edda31685606953e
+  "mfs-1.6.20-2.tar.gz": d74f692d25a1c78b07ab8896a4ba6118569e47d7
+  mfs-1.6.26.tar.gz: ba7c9bb4847d4bcdb81f9e751aeff3c2d7ee0942

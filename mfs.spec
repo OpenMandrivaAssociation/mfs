@@ -1,5 +1,5 @@
 %define name mfs
-%define version 1.6.20
+%define version 1.6.26
 %define release %mkrel 2
 %define minor 2
 %define	_localstatedir	/var/lib
@@ -9,17 +9,16 @@ Summary:	MooseFS - distributed, fault tolerant file system
 Name:		%{name}
 Version:	%{version}
 Release:	%{release}
-License:	GPL v3
+License:	GPLv3
 Group:		System/Cluster
 URL:		http://www.moosefs.org/
-Source0:	http://moosefs.org/tl_files/mfscode/%{name}-%{version}-%{minor}.tar.gz
+Source0:	http://moosefs.org/tl_files/mfscode/%{name}-%{version}.tar.gz
 Source1:	mfschunkserver.init 	
 Source2:	mfsmaster.init
 Source3: 	mfsmetalogger.init
 BuildRequires:	fuse-devel
 BuildRequires:	pkgconfig
-BuildRequires:	zlib-devel
-BuildRoot:	%{_tmppath}/%{name}-%{version}-%{minor}-%{release}-root-%(%{__id_u} -n)
+BuildRequires:	pkgconfig(zlib)
 
 %description
 MooseFS is an Open Source, easy to deploy and maintain, distributed,
@@ -62,7 +61,7 @@ Requires:	python
 MooseFS CGI Monitor.
 
 %prep
-%setup -q -n mfs-%{version}-%{minor}
+%setup -q -n mfs-%{version}
 install -m 755 %{SOURCE1} mfschunkserver.init
 install -m 755 %{SOURCE2} mfsmaster.init
 install -m 755 %{SOURCE3} mfsmetalogger.init
@@ -102,9 +101,6 @@ install -d $RPM_BUILD_ROOT%{_initrddir}
 %_post_service mfsmetalogger
 
 
-%clean
-rm -rf $RPM_BUILD_ROOT
-
 %files master
 %defattr(644,root,root,755)
 %doc NEWS README UPGRADE
@@ -113,15 +109,16 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) %{_sbindir}/mfsmetarestore
 %{_mandir}/man5/mfsexports.cfg.5*
 %{_mandir}/man5/mfsmaster.cfg.5*
+%{_mandir}/man5/mfstopology.cfg.5.xz
 %{_mandir}/man7/mfs.7*
 %{_mandir}/man7/moosefs.7*
 %{_mandir}/man8/mfsmaster.8*
 %{_mandir}/man8/mfsmetarestore.8*
 %{mfsconfdir}/mfsexports.cfg.dist
+%{mfsconfdir}/mfsmount.cfg.dist
 %{mfsconfdir}/mfsmaster.cfg.dist
-%dir %{_localstatedir}/mfs
+%{mfsconfdir}/mfstopology.cfg.dist
 %attr(755,mfs,mfs) %{_localstatedir}/mfs
-%{_localstatedir}/mfs/metadata.mfs.empty
 %attr(754,root,root) %{_initrddir}/mfsmaster
 
 %files metalogger
@@ -185,8 +182,6 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man1/mfssetgoal.1*
 %{_mandir}/man1/mfssettrashtime.1*
 %{_mandir}/man1/mfstools.1*
-%{_mandir}/man7/mfs.7*
-%{_mandir}/man7/moosefs.7*
 %{_mandir}/man8/mfsmount.8*
 
 %files cgi
@@ -196,17 +191,16 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man8/mfscgiserv.8*
 %attr(755,mfs,mfs) %{_datadir}/mfscgi
 
+
+
 %changelog
-* Fri Nov 19 2010 Jakub Bogusz <contact@moosefs.com> - 1.6.19-1
-- separated mfs-metalogger subpackage (following Debian packaging)
+* Wed Jun 08 2011 Leonardo Coelho <leonardoc@mandriva.com> 1.6.20-2mdv2011.0
++ Revision: 683304
+- bump version
+- create mfs user and permissions
 
-* Fri Oct  8 2010 Jakub Bogusz <contact@moosefs.com> - 1.6.17-1
-- added init scripts based on work of Steve Huff (Dag Apt Repository)
-  (included in RPMs when building with --define "distro rh")
+* Mon May 30 2011 Leonardo Coelho <leonardoc@mandriva.com> 1.6.20-1
++ Revision: 681886
+- package creation on mandriva
+- Created package structure for mfs.
 
-* Mon Jul 19 2010 Jakub Kruszona-Zawadzki <contact@moosefs.com> - 1.6.16-1
-- added mfscgiserv man page
-
-* Fri Jun 11 2010 Jakub Bogusz <contact@moosefs.com> - 1.6.15-1
-- initial spec file, based on Debian packaging;
-  partially inspired by spec file by Kirby Zhou
