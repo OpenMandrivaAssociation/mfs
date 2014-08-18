@@ -1,0 +1,13 @@
+[Unit]
+Description=MooseFS chunkserver service
+After=network.target
+
+[Service]
+Type=forking
+User=mfs
+EnvironmentFile=/etc/mfschunkserver.cfg
+EnvironmentFile=/etc/mfshdd.cfg
+ExecStart=/usr/sbin/mfschunkserver
+
+[Install]
+WantedBy=multi-user.target

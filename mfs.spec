@@ -1,24 +1,23 @@
-%define name mfs
-%define version 1.6.26
-%define release %mkrel 2
-%define minor 2
 %define	_localstatedir	/var/lib
 %define	mfsconfdir	%{_sysconfdir}
 
 Summary:	MooseFS - distributed, fault tolerant file system
-Name:		%{name}
-Version:	%{version}
-Release:	%{release}
+Name:		mfs
+Version:	1.6.26
+Release:	4
 License:	GPLv3
 Group:		System/Cluster
 URL:		http://www.moosefs.org/
 Source0:	http://moosefs.org/tl_files/mfscode/%{name}-%{version}.tar.gz
-Source1:	mfschunkserver.init 	
-Source2:	mfsmaster.init
-Source3: 	mfsmetalogger.init
+Source1:	mfschunkserver.service
+Source2:	mfsmaster.service
+Source3: 	mfsmetalogger.service
 BuildRequires:	fuse-devel
 BuildRequires:	pkgconfig
 BuildRequires:	pkgconfig(zlib)
+Requires(post): systemd-units
+Requires(preun): systemd-units
+Requires(postun): systemd-units
 
 %description
 MooseFS is an Open Source, easy to deploy and maintain, distributed,
@@ -62,44 +61,82 @@ MooseFS CGI Monitor.
 
 %prep
 %setup -q -n mfs-%{version}
-install -m 755 %{SOURCE1} mfschunkserver.init
-install -m 755 %{SOURCE2} mfsmaster.init
-install -m 755 %{SOURCE3} mfsmetalogger.init
 
 %build
 %configure
-# fix libtool issue on release < 2009.1
-%if %mdkversion < 200910
-perl -pi -e "s/^ECHO.*/ECHO='echo'\necho='echo'\n/" libtool
-%endif
-make %{?_smp_mflags}
+%make
 
 %install
-rm -rf $RPM_BUILD_ROOT
+%makeinstall_std
 
-make install \
-	DESTDIR=$RPM_BUILD_ROOT
-mkdir -p  %{buildroot}%{_initrddir}
-install -m 755 mfschunkserver.init %{buildroot}%{_initrddir}/mfschunkserver
-install -m 755 mfsmaster.init %{buildroot}%{_initrddir}/mfsmaster
-install -m 755 mfsmetalogger.init %{buildroot}%{_initrddir}/mfsmetalogger
+install -D -m 644 %{SOURCE1} %{buildroot}%{_unitdir}/mfschunkserver.service
+install -D -m 644 %{SOURCE2} %{buildroot}%{_unitdir}/mfsmaster.service
+install -D -m 644 %{SOURCE3} %{buildroot}%{_unitdir}/mfsmetalogger.service
 
-install -d $RPM_BUILD_ROOT%{_initrddir}
- 
-%pre master
+# creating default configs
+cp %{buildroot}%{mfsconfdir}/mfsexports.cfg.dist %{buildroot}%{mfsconfdir}/mfsexports.cfg
+cp %{buildroot}%{mfsconfdir}/mfsmount.cfg.dist %{buildroot}%{mfsconfdir}/mfsmount.cfg
+cp %{buildroot}%{mfsconfdir}/mfsmaster.cfg.dist %{buildroot}%{mfsconfdir}/mfsmaster.cfg
+cp %{buildroot}%{mfsconfdir}/mfstopology.cfg.dist %{buildroot}%{mfsconfdir}/mfstopology.cfg
+cp %{buildroot}%{mfsconfdir}/mfsmetalogger.cfg.dist %{buildroot}%{mfsconfdir}/mfsmetalogger.cfg
+cp %{buildroot}%{mfsconfdir}/mfschunkserver.cfg.dist %{buildroot}%{mfsconfdir}/mfschunkserver.cfg
+cp %{buildroot}%{mfsconfdir}/mfshdd.cfg.dist %{buildroot}%{mfsconfdir}/mfshdd.cfg
+
+%pre
 %_pre_useradd mfs /var/lib/mfs /sbin/nologin
 %_pre_groupadd mfs mfs
 
+%postun
+%_postun_groupdel mfs
+%_postun_userdel mfs
+
 %post
-%_post_service mfschunkserver
-%_post_service mfsmaster
-%_post_service mfsmetalogger
+if [ $1 -eq 1 ] ; then 
+    # Initial installation 
+    /bin/systemctl daemon-reload >/dev/null 2>&1 || :
+fi
 
-%preun
-%_post_service mfschunkserver
-%_post_service mfsmaster
-%_post_service mfsmetalogger
+%preun master
+if [ $1 -eq 0 ] ; then
+    # Package removal, not upgrade
+    /bin/systemctl --no-reload disable mfsmaster.service > /dev/null 2>&1 || :
+    /bin/systemctl stop mfsmaster.service > /dev/null 2>&1 || :
+fi
 
+%postun master
+/bin/systemctl daemon-reload >/dev/null 2>&1 || :
+if [ $1 -ge 1 ] ; then
+    # Package upgrade, not uninstall
+    /bin/systemctl try-restart mfsmaster.service >/dev/null 2>&1 || ::
+fi
+
+%preun chunkserver
+if [ $1 -eq 0 ] ; then
+    # Package removal, not upgrade
+    /bin/systemctl --no-reload disable mfschunkserver.service > /dev/null 2>&1 || :
+    /bin/systemctl stop mfschunkserver.service > /dev/null 2>&1 || :
+fi
+
+%postun chunkserver
+/bin/systemctl daemon-reload >/dev/null 2>&1 || :
+if [ $1 -ge 1 ] ; then
+    # Package upgrade, not uninstall
+    /bin/systemctl try-restart mfschunkserver.service >/dev/null 2>&1 || :
+fi
+
+%preun metalogger
+if [ $1 -eq 0 ] ; then
+    # Package removal, not upgrade
+    /bin/systemctl --no-reload disable mfsmetalogger.service > /dev/null 2>&1 || :
+    /bin/systemctl stop mfsmetalogger.service > /dev/null 2>&1 || :
+fi
+
+%postun metalogger
+/bin/systemctl daemon-reload >/dev/null 2>&1 || :
+if [ $1 -ge 1 ] ; then
+    # Package upgrade, not uninstall
+    /bin/systemctl try-restart mfsmetalogger.service >/dev/null 2>&1 || :
+fi
 
 %files master
 %defattr(644,root,root,755)
@@ -115,11 +152,15 @@ install -d $RPM_BUILD_ROOT%{_initrddir}
 %{_mandir}/man8/mfsmaster.8*
 %{_mandir}/man8/mfsmetarestore.8*
 %{mfsconfdir}/mfsexports.cfg.dist
+%{mfsconfdir}/mfsexports.cfg
 %{mfsconfdir}/mfsmount.cfg.dist
+%{mfsconfdir}/mfsmount.cfg
 %{mfsconfdir}/mfsmaster.cfg.dist
+%{mfsconfdir}/mfsmaster.cfg
 %{mfsconfdir}/mfstopology.cfg.dist
+%{mfsconfdir}/mfstopology.cfg
 %attr(755,mfs,mfs) %{_localstatedir}/mfs
-%attr(754,root,root) %{_initrddir}/mfsmaster
+%{_unitdir}/mfsmaster.service
 
 %files metalogger
 %defattr(644,root,root,755)
@@ -128,7 +169,8 @@ install -d $RPM_BUILD_ROOT%{_initrddir}
 %{_mandir}/man5/mfsmetalogger.cfg.5*
 %{_mandir}/man8/mfsmetalogger.8*
 %{mfsconfdir}/mfsmetalogger.cfg.dist
-%attr(754,root,root) %{_initrddir}/mfsmetalogger
+%{mfsconfdir}/mfsmetalogger.cfg
+%{_unitdir}/mfsmetalogger.service
 
 %files chunkserver
 %defattr(644,root,root,755)
@@ -138,8 +180,10 @@ install -d $RPM_BUILD_ROOT%{_initrddir}
 %{_mandir}/man5/mfshdd.cfg.5*
 %{_mandir}/man8/mfschunkserver.8*
 %{mfsconfdir}/mfschunkserver.cfg.dist
+%{mfsconfdir}/mfschunkserver.cfg
 %{mfsconfdir}/mfshdd.cfg.dist
-%attr(754,root,root) %{_initrddir}/mfschunkserver
+%{mfsconfdir}/mfshdd.cfg
+%{_unitdir}/mfschunkserver.service
 
 %files client
 %defattr(644,root,root,755)
@@ -190,17 +234,3 @@ install -d $RPM_BUILD_ROOT%{_initrddir}
 %attr(755,root,root) %{_sbindir}/mfscgiserv
 %{_mandir}/man8/mfscgiserv.8*
 %attr(755,mfs,mfs) %{_datadir}/mfscgi
-
-
-
-%changelog
-* Wed Jun 08 2011 Leonardo Coelho <leonardoc@mandriva.com> 1.6.20-2mdv2011.0
-+ Revision: 683304
-- bump version
-- create mfs user and permissions
-
-* Mon May 30 2011 Leonardo Coelho <leonardoc@mandriva.com> 1.6.20-1
-+ Revision: 681886
-- package creation on mandriva
-- Created package structure for mfs.
-

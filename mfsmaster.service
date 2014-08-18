@@ -1,0 +1,13 @@
+[Unit]
+Description=MooseFS master service
+After=network.target
+
+[Service]
+Type=forking
+User=mfs
+EnvironmentFile=/etc/mfsmaster.cfg
+EnvironmentFile=/etc/mfsexports.cfg
+ExecStart=/usr/sbin/mfsmaster
+
+[Install]
+WantedBy=multi-user.target 
