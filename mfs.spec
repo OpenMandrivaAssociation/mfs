@@ -4,83 +4,21 @@
 Summary:	MooseFS - distributed, fault tolerant file system
 Name:		mfs
 Version:	1.6.26
-Release:	4
-License:	GPLv3
+Release:	5
+License:	GPLv3+
 Group:		System/Cluster
-URL:		http://www.moosefs.org/
+Url:		http://www.moosefs.org/
 Source0:	http://moosefs.org/tl_files/mfscode/%{name}-%{version}.tar.gz
 Source1:	mfschunkserver.service
 Source2:	mfsmaster.service
 Source3: 	mfsmetalogger.service
-BuildRequires:	fuse-devel
-BuildRequires:	pkgconfig
+BuildRequires:	pkgconfig(fuse)
 BuildRequires:	pkgconfig(zlib)
-Requires(post): systemd-units
-Requires(preun): systemd-units
-Requires(postun): systemd-units
+Requires(post,preun,postun):	systemd-units
 
 %description
 MooseFS is an Open Source, easy to deploy and maintain, distributed,
 fault tolerant file system for POSIX compliant OSes.
-
-%package master
-Summary:	MooseFS master server
-Group:		System/Cluster
-
-%description master
-MooseFS master (metadata) server together with metarestore utility.
-
-%package metalogger
-Summary:	MooseFS metalogger server
-Group:		System/Cluster
-
-%description metalogger
-MooseFS metalogger (metadata replication) server.
-
-%package chunkserver
-Summary:	MooseFS data server
-Group:		System/Cluster
-
-%description chunkserver
-MooseFS data server.
-
-%package client
-Summary:	MooseFS client
-Group:		System/Cluster
-
-%description client
-MooseFS client: mfsmount and mfstools.
-
-%package cgi
-Summary:	MooseFS CGI Monitor
-Group:		System/Cluster
-Requires:	python
-
-%description cgi
-MooseFS CGI Monitor.
-
-%prep
-%setup -q -n mfs-%{version}
-
-%build
-%configure
-%make
-
-%install
-%makeinstall_std
-
-install -D -m 644 %{SOURCE1} %{buildroot}%{_unitdir}/mfschunkserver.service
-install -D -m 644 %{SOURCE2} %{buildroot}%{_unitdir}/mfsmaster.service
-install -D -m 644 %{SOURCE3} %{buildroot}%{_unitdir}/mfsmetalogger.service
-
-# creating default configs
-cp %{buildroot}%{mfsconfdir}/mfsexports.cfg.dist %{buildroot}%{mfsconfdir}/mfsexports.cfg
-cp %{buildroot}%{mfsconfdir}/mfsmount.cfg.dist %{buildroot}%{mfsconfdir}/mfsmount.cfg
-cp %{buildroot}%{mfsconfdir}/mfsmaster.cfg.dist %{buildroot}%{mfsconfdir}/mfsmaster.cfg
-cp %{buildroot}%{mfsconfdir}/mfstopology.cfg.dist %{buildroot}%{mfsconfdir}/mfstopology.cfg
-cp %{buildroot}%{mfsconfdir}/mfsmetalogger.cfg.dist %{buildroot}%{mfsconfdir}/mfsmetalogger.cfg
-cp %{buildroot}%{mfsconfdir}/mfschunkserver.cfg.dist %{buildroot}%{mfsconfdir}/mfschunkserver.cfg
-cp %{buildroot}%{mfsconfdir}/mfshdd.cfg.dist %{buildroot}%{mfsconfdir}/mfshdd.cfg
 
 %pre
 %_pre_useradd mfs /var/lib/mfs /sbin/nologin
@@ -91,52 +29,20 @@ cp %{buildroot}%{mfsconfdir}/mfshdd.cfg.dist %{buildroot}%{mfsconfdir}/mfshdd.cf
 %_postun_userdel mfs
 
 %post
-if [ $1 -eq 1 ] ; then 
-    # Initial installation 
+if [ $1 -eq 1 ] ; then
+    # Initial installation
     /bin/systemctl daemon-reload >/dev/null 2>&1 || :
 fi
 
-%preun master
-if [ $1 -eq 0 ] ; then
-    # Package removal, not upgrade
-    /bin/systemctl --no-reload disable mfsmaster.service > /dev/null 2>&1 || :
-    /bin/systemctl stop mfsmaster.service > /dev/null 2>&1 || :
-fi
+#----------------------------------------------------------------------------
 
-%postun master
-/bin/systemctl daemon-reload >/dev/null 2>&1 || :
-if [ $1 -ge 1 ] ; then
-    # Package upgrade, not uninstall
-    /bin/systemctl try-restart mfsmaster.service >/dev/null 2>&1 || ::
-fi
+%package master
+Summary:	MooseFS master server
+Group:		System/Cluster
+Requires(preun,postun):	systemd-units
 
-%preun chunkserver
-if [ $1 -eq 0 ] ; then
-    # Package removal, not upgrade
-    /bin/systemctl --no-reload disable mfschunkserver.service > /dev/null 2>&1 || :
-    /bin/systemctl stop mfschunkserver.service > /dev/null 2>&1 || :
-fi
-
-%postun chunkserver
-/bin/systemctl daemon-reload >/dev/null 2>&1 || :
-if [ $1 -ge 1 ] ; then
-    # Package upgrade, not uninstall
-    /bin/systemctl try-restart mfschunkserver.service >/dev/null 2>&1 || :
-fi
-
-%preun metalogger
-if [ $1 -eq 0 ] ; then
-    # Package removal, not upgrade
-    /bin/systemctl --no-reload disable mfsmetalogger.service > /dev/null 2>&1 || :
-    /bin/systemctl stop mfsmetalogger.service > /dev/null 2>&1 || :
-fi
-
-%postun metalogger
-/bin/systemctl daemon-reload >/dev/null 2>&1 || :
-if [ $1 -ge 1 ] ; then
-    # Package upgrade, not uninstall
-    /bin/systemctl try-restart mfsmetalogger.service >/dev/null 2>&1 || :
-fi
+%description master
+MooseFS master (metadata) server together with metarestore utility.
 
 %files master
 %defattr(644,root,root,755)
@@ -162,6 +68,25 @@ fi
 %attr(755,mfs,mfs) %{_localstatedir}/mfs
 %{_unitdir}/mfsmaster.service
 
+%post master
+%systemd_post mfsmaster.service
+
+%preun master
+%systemd_preun mfsmaster.service
+
+%postun master
+%systemd_postun_with_restart mfsmaster.service
+
+#----------------------------------------------------------------------------
+
+%package metalogger
+Summary:	MooseFS metalogger server
+Group:		System/Cluster
+Requires(preun,postun):	systemd-units
+
+%description metalogger
+MooseFS metalogger (metadata replication) server.
+
 %files metalogger
 %defattr(644,root,root,755)
 %doc NEWS README UPGRADE
@@ -171,6 +96,25 @@ fi
 %{mfsconfdir}/mfsmetalogger.cfg.dist
 %{mfsconfdir}/mfsmetalogger.cfg
 %{_unitdir}/mfsmetalogger.service
+
+%post metalogger
+%systemd_post mfsmetalogger.service
+
+%preun metalogger
+%systemd_preun mfsmetalogger.service
+
+%postun metalogger
+%systemd_postun_with_restart mfsmetalogger.service
+
+#----------------------------------------------------------------------------
+
+%package chunkserver
+Summary:	MooseFS data server
+Group:		System/Cluster
+Requires(preun,postun):	systemd-units
+
+%description chunkserver
+MooseFS data server.
 
 %files chunkserver
 %defattr(644,root,root,755)
@@ -184,6 +128,24 @@ fi
 %{mfsconfdir}/mfshdd.cfg.dist
 %{mfsconfdir}/mfshdd.cfg
 %{_unitdir}/mfschunkserver.service
+
+%post chunkserver
+%systemd_post mfschunkserver.service
+
+%preun chunkserver
+%systemd_preun mfschunkserver.service
+
+%postun chunkserver
+%systemd_postun_with_restart mfschunkserver.service
+
+#----------------------------------------------------------------------------
+
+%package client
+Summary:	MooseFS client
+Group:		System/Cluster
+
+%description client
+MooseFS client: mfsmount and mfstools.
 
 %files client
 %defattr(644,root,root,755)
@@ -228,9 +190,46 @@ fi
 %{_mandir}/man1/mfstools.1*
 %{_mandir}/man8/mfsmount.8*
 
+#----------------------------------------------------------------------------
+
+%package cgi
+Summary:	MooseFS CGI Monitor
+Group:		System/Cluster
+Requires:	python
+
+%description cgi
+MooseFS CGI Monitor.
+
 %files cgi
 %defattr(644,root,root,755)
 %doc NEWS README UPGRADE
 %attr(755,root,root) %{_sbindir}/mfscgiserv
 %{_mandir}/man8/mfscgiserv.8*
 %attr(755,mfs,mfs) %{_datadir}/mfscgi
+
+#----------------------------------------------------------------------------
+
+%prep
+%setup -q
+
+%build
+autoreconf -fi
+%configure2_5x
+%make
+
+%install
+%makeinstall_std
+
+install -D -m 644 %{SOURCE1} %{buildroot}%{_unitdir}/mfschunkserver.service
+install -D -m 644 %{SOURCE2} %{buildroot}%{_unitdir}/mfsmaster.service
+install -D -m 644 %{SOURCE3} %{buildroot}%{_unitdir}/mfsmetalogger.service
+
+# creating default configs
+cp %{buildroot}%{mfsconfdir}/mfsexports.cfg.dist %{buildroot}%{mfsconfdir}/mfsexports.cfg
+cp %{buildroot}%{mfsconfdir}/mfsmount.cfg.dist %{buildroot}%{mfsconfdir}/mfsmount.cfg
+cp %{buildroot}%{mfsconfdir}/mfsmaster.cfg.dist %{buildroot}%{mfsconfdir}/mfsmaster.cfg
+cp %{buildroot}%{mfsconfdir}/mfstopology.cfg.dist %{buildroot}%{mfsconfdir}/mfstopology.cfg
+cp %{buildroot}%{mfsconfdir}/mfsmetalogger.cfg.dist %{buildroot}%{mfsconfdir}/mfsmetalogger.cfg
+cp %{buildroot}%{mfsconfdir}/mfschunkserver.cfg.dist %{buildroot}%{mfsconfdir}/mfschunkserver.cfg
+cp %{buildroot}%{mfsconfdir}/mfshdd.cfg.dist %{buildroot}%{mfsconfdir}/mfshdd.cfg
+
