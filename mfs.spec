@@ -7,7 +7,7 @@ Version:	1.6.26
 Release:	7
 License:	GPLv3+
 Group:		System/Cluster
-Url:		http://www.moosefs.org/
+Url:		https://www.moosefs.org/
 Source0:	http://moosefs.org/tl_files/mfscode/%{name}-%{version}.tar.gz
 Source1:	mfschunkserver.service
 Source2:	mfsmaster.service
