@@ -12,6 +12,11 @@ Source0:	http://moosefs.org/tl_files/mfscode/%{name}-%{version}.tar.gz
 Source1:	mfschunkserver.service
 Source2:	mfsmaster.service
 Source3: 	mfsmetalogger.service
+BuildRequires:	autoconf
+BuildRequires:	automake
+BuildRequires:	libtool-base
+BuildRequires:	slibtool
+BuildRequires:	make
 BuildRequires:	pkgconfig(fuse)
 BuildRequires:	pkgconfig(zlib)
 Requires(post,preun,postun):	systemd-units
